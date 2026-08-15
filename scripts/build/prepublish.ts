@@ -680,6 +680,54 @@ for (const relativePath of APP_STAGING_REMOVAL_PATHS) {
   }
 }
 
+// ── Step 10.65: Slim dist/node_modules (Richard's lean-package rule) ────────
+// Heavy optional dependencies that are dynamically imported and fail-open at
+// runtime (verified against src/): never loaded in this deployment.
+//   - @tensorflow/* + onnxruntime-* : local embedding (transformersEnabled=false)
+//     and LLMLingua ONNX compression (no models ever downloaded)
+//   - @ngrok/ngrok                  : tunnel API, dynamically imported only when
+//     the tunnels page is used
+//   - jsdom                          : only the built-in /docs page (lazy)
+//   - typescript                     : compression RTK codeStripper (lazy, fail-open)
+// Removing them keeps the installed package lean without changing behavior.
+const SLIM_NODE_MODULES = [
+  "node_modules/@tensorflow",
+  "node_modules/onnxruntime-node",
+  "node_modules/onnxruntime-web",
+  "node_modules/@ngrok",
+  "node_modules/jsdom",
+  "node_modules/typescript",
+];
+for (const rel of SLIM_NODE_MODULES) {
+  const targetPath = join(DIST_DIR, rel);
+  if (existsSync(targetPath)) {
+    const sizeMb = (() => {
+      try {
+        const { execFileSync } = require("node:child_process");
+        const out = execFileSync("du", ["-sm", targetPath], { encoding: "utf8" });
+        return out.trim().split(/\s+/)[0];
+      } catch {
+        return "?";
+      }
+    })();
+    rmSync(targetPath, { recursive: true, force: true });
+    console.log(`  🧹 Removed dist/${rel} (~${sizeMb}MB, optional dep not used)`);
+  }
+}
+
+// Built-in documentation markdown — Richard doesn't use it; the /docs route is
+// skipped at build time (OMNIROUTE_SLIM_DOCS=1 in build-next-isolated.mjs).
+// NOTE: docs/openapi.yaml is kept (API spec used by the api-explorer page).
+const docsDirPath = join(DIST_DIR, "docs");
+if (existsSync(docsDirPath)) {
+  for (const entry of readdirSync(docsDirPath)) {
+    if (entry.endsWith(".md") || entry.endsWith(".mdx")) {
+      rmSync(join(docsDirPath, entry), { force: true });
+      console.log(`  🧹 Removed dist/docs/${entry} (built-in docs markdown — not used)`);
+    }
+  }
+}
+
 // ── Step 10.7: Prune any staged dist/ file outside the allowed runtime set ──
 // #9985: neverAllowedSegments is EMPTY here on purpose — unlike the publish
 // tarball gate, the staged dist/ legitimately contains node_modules (the

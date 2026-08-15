@@ -44,6 +44,17 @@ export function getTransientBuildPaths(rootDir = projectRoot, env = process.env)
     });
   }
 
+  // Richard's lean-package rule: skip the built-in /docs route entirely so the
+  // Next manifest never references it (post-build deletion would 500). The
+  // source is restored after the build, so the repo stays intact.
+  if (env.OMNIROUTE_SLIM_DOCS === "1") {
+    paths.push({
+      label: "built-in docs route",
+      sourcePath: path.join(rootDir, "src", "app", "docs"),
+      backupPath: path.join(backupRoot, "docs-route"),
+    });
+  }
+
   return paths;
 }
 
@@ -105,7 +116,16 @@ function runNextBuild() {
           resolveNextBuildBundlerFlag(),
         ]
       : [nextBin, "build", resolveNextBuildBundlerFlag()];
-    const child = spawn(process.execPath, nextArgs, {
+    // Richard's machine rule: any build must stay off the full CPU/RAM.
+    // On Linux, wrap the `next build` child in taskset (first 8 cores) + nice +10
+    // so EVERY caller (npm run build, build:release, other agents/sessions) is
+    // limited — the `omniroute-build` wrapper alone is bypassable. Children of
+    // this process inherit both the CPU affinity and the nice level.
+    const spawnCmd =
+      process.platform === "win32"
+        ? [process.execPath, ...nextArgs]
+        : ["taskset", "-c", "0-7", "nice", "-n", "10", process.execPath, ...nextArgs];
+    const child = spawn(spawnCmd[0], spawnCmd.slice(1), {
       cwd: projectRoot,
       stdio: "inherit",
       env: buildEnv,

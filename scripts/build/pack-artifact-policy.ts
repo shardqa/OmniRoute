@@ -313,6 +313,17 @@ export function parseJsonArrayOutput(
  */
 export const PACK_ARTIFACT_NEVER_ALLOWED_SEGMENTS: string[] = ["node_modules"];
 
+/**
+ * Richard's lean-package fix: the assembled runtime's own `dist/node_modules/`
+ * (root-level, copied by assembleStandalone) is legitimate and must ship in the
+ * tarball. Nested node_modules (inside subpackages) stay forbidden.
+ */
+export function hasForbiddenNodeModulesSegment(filePath: string): boolean {
+  const segments = filePath.split("/");
+  if (segments[0] === "dist" && segments[1] === "node_modules") return false;
+  return segments.some((segment) => PACK_ARTIFACT_NEVER_ALLOWED_SEGMENTS.includes(segment));
+}
+
 export function findUnexpectedArtifactPaths(
   filePaths: string[],
   {
@@ -335,7 +346,9 @@ export function findUnexpectedArtifactPaths(
   const normalizedPrefixes = prefixPaths.map(normalizeArtifactPath);
 
   const hasForbiddenSegment = (filePath: string): boolean =>
-    filePath.split("/").some((segment) => neverAllowedSegments.includes(segment));
+    neverAllowedSegments === PACK_ARTIFACT_NEVER_ALLOWED_SEGMENTS
+      ? hasForbiddenNodeModulesSegment(filePath)
+      : filePath.split("/").some((segment) => neverAllowedSegments.includes(segment));
 
   return filePaths
     .map(normalizeArtifactPath)
