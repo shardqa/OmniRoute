@@ -103,7 +103,7 @@
     "build": "node scripts/build/build-next-isolated.mjs",
     "build:secure": "OMNIROUTE_BUILD_PROFILE=minimal node scripts/build/build-next-isolated.mjs",
     "build:backend": "cross-env OMNIROUTE_BUILD_BACKEND_ONLY=1 node scripts/build/build-next-isolated.mjs",
-    "build:contributor": "cross-env OMNIROUTE_BUILD_PROFILE=contributor node scripts/build/build-next-isolated.mjs",
+    "build:contributor": "cross-env OMNIROUTE_BUILD_PROFILE=contributor OMNIROUTE_USE_TURBOPACK=0 node scripts/build/build-next-isolated.mjs",
     "build:cli": "node --import tsx scripts/build/prepublish.ts",
     "omniroute:verify": "node scripts/check/omniroute-verify.mjs",
     "build:release": "OMNIROUTE_BUILD_SHA=$(git rev-parse --short HEAD) OMNIROUTE_BUILD_BACKEND_ONLY=1 OMNIROUTE_SLIM_DOCS=1 npm run build && npm run build:cli && node scripts/build/write-build-sha.mjs",

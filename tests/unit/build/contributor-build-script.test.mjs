@@ -8,7 +8,6 @@ import {
 } from "../../../scripts/build/backendOnlyPages.mjs";
 
 const nextConfigSource = fs.readFileSync(path.join(process.cwd(), "next.config.mjs"), "utf8");
-
 const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), "package.json"), "utf8"));
 
 test("contributor build profile selects the webpack fallback", () => {
@@ -36,8 +35,6 @@ test("contributor instrumentation stubs are reversible", async () => {
   }
   const stubbed = stubContributorInstrumentation(tempRoot, { warn() {} });
   assert.equal(stubbed.length, 2);
-  // Each stub must declare the symbol its own file really exports — instrumentation.ts
-  // owns Next's register(), instrumentation-node.ts owns registerNodejs().
   assert.match(
     await fs.readFile(path.join(instrumentationDir, "instrumentation.ts"), "utf8"),
     /export async function register\(\) \{\}/
