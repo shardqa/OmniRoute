@@ -51,7 +51,8 @@ const ERROR_STUB = `${HEADER}"use client";\nexport default function BackendOnlyE
 // global-error replaces the root layout on a root error, so it must render <html>/<body>.
 const GLOBAL_ERROR_STUB = `${HEADER}"use client";\nexport default function BackendOnlyGlobalErrorStub() {\n  return (\n    <html>\n      <body></body>\n    </html>\n  );\n}\n`;
 
-const UI_BASENAME_RE = /^(page|layout|template|loading|error|global-error|not-found|default)\.(tsx|jsx|ts|js)$/;
+const UI_BASENAME_RE =
+  /^(page|layout|template|loading|error|global-error|not-found|default)\.(tsx|jsx|ts|js)$/;
 const ROUTE_FILE_RE = /[\\/]route\.(ts|js|tsx|jsx)$/;
 
 /**
@@ -88,6 +89,11 @@ export function isBackendOnlyBuild(env = process.env) {
     env.OMNIROUTE_BUILD_PROFILE === "backend" ||
     env.OMNIROUTE_BUILD_PROFILE === "contributor"
   );
+}
+
+/** True when the build is intended only for contributor feedback, not packaging. */
+export function isContributorBuild(env = process.env) {
+  return env.OMNIROUTE_BUILD_PROFILE === "contributor";
 }
 
 function walkFiles(dir, out = []) {
